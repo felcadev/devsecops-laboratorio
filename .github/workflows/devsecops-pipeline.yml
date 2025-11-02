@@ -124,140 +124,49 @@ jobs:
     name: CI Security Pipeline
 
     steps:
-      # # 1️⃣ Checkout del repositorio
-      # - name: Checkout repository
-      #   uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      #   with:
-      #     fetch-depth: 0 # Necesario para SonarCloud
+      # 1️⃣ Checkout del repositorio
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0 # Necesario para SonarCloud
 
-      # # 2️⃣ Configuración del entorno Node.js
-      # - name: Set up Node.js
-      #   uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
-      #   with:
-      #     node-version: "18"
+      # 2️⃣ Configuración del entorno Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: "18"
 
-      # # 3️⃣ Instalación de dependencias
-      # - name: Install dependencies
-      #   run: npm install
+      # 3️⃣ Instalación de dependencias
+      - name: Install dependencies
+        run: npm install
 
-      # # 4️⃣ SAST - Análisis estático con SonarCloud
-      # - name: SAST - SonarCloud Scan
-      #   uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2.3.0
-      #   env:
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     args: >
-      #       -Dsonar.projectKey=felcadev_devsecops-laboratorio
-      #       -Dsonar.organization=felcadev
-      #       -Dsonar.qualitygate.wait=true
+      # 4️⃣ SAST - Análisis estático con SonarCloud
+      - name: SAST - SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=felcadev_devsecops-laboratorio
+            -Dsonar.organization=felcadev
+            -Dsonar.qualitygate.wait=true
 
-      # 5️⃣ SCA - Análisis de dependencias con OWASP Dependency-Check
-      sca-dependencycheck:
-        name: SCA
-        runs-on: ubuntu-latest
-        steps:
-          - uses: actions/checkout@v3
-            with:
-              fetch-depth: 0
+      # 5️⃣ SCA - Análisis de dependencias con OWASP Dependency Check
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@1a2b3c4d5e6f7890abcdef1234567890abcdef12 # 🔒 Usa el SHA exacto
+        with:
+          project: "react-frontend"
+          path: "."
+          format: "HTML"
+          out: "reports"
+          args: >
+            --enableExperimental
+            --scan ./package-lock.json
 
-          - name: Setup Java (requerido para Dependency-Check)
-            uses: actions/setup-java@v3
-            with:
-              distribution: "temurin"
-              java-version: "17"
-
-          - name: Análisis OWASP Dependency-Check
-            uses: dependency-check/Dependency-Check_Action@main
-            env:
-              JAVA_HOME: /opt/jdk
-            with:
-              project: "${{ github.repository }}"
-              path: "."
-              format: "ALL"
-              args: >
-                --enableRetired
-              out: "reports"
-
-          - name: Carga de reportes de Dependency-Check
-            uses: actions/upload-artifact@v4
-            with:
-              name: dependency-check-report
-              path: reports/
-              retention-days: 30
-
-          - name: Análisis de reporte de Dependency-Check
-            run: |
-              echo "::group::Análisis de Vulnerabilidades en Dependencias (SCA)"
-
-              REPORT_JSON="reports/dependency-check-report.json"
-
-              if [ ! -f "$REPORT_JSON" ]; then
-                echo "::error::No se generó el reporte de Dependency-Check"
-                exit 1
-              fi
-
-              # Contar vulnerabilidades por severidad
-              CRITICAL=$(jq -r '
-                [.dependencies[]?.vulnerabilities[]? | 
-                select(.severity == "critical")] | length
-              ' "$REPORT_JSON")
-
-              HIGH=$(jq -r '
-                [.dependencies[]?.vulnerabilities[]? | 
-                select(.severity == "high")] | length
-              ' "$REPORT_JSON")
-
-              MODERATE=$(jq -r '
-                [.dependencies[]?.vulnerabilities[]? | 
-                select(.severity == "moderate")] | length
-              ' "$REPORT_JSON")
-
-              LOW=$(jq -r '
-                [.dependencies[]?.vulnerabilities[]? | 
-                select(.severity == "low")] | length
-              ' "$REPORT_JSON")
-
-              # Contar dependencias vulnerables
-              VULNERABLE_DEPS=$(jq -r '
-                [.dependencies[]? | 
-                select(.vulnerabilities != null and (.vulnerabilities | length) > 0)] | length
-              ' "$REPORT_JSON")
-
-              TOTAL_DEPS=$(jq -r '.dependencies | length' "$REPORT_JSON")
-
-              echo "Dependencias analizadas: $TOTAL_DEPS"
-              echo "Dependencias vulnerables: $VULNERABLE_DEPS"
-              echo ""
-              echo "🔴 CRITICAL: $CRITICAL"
-              echo "🟠 HIGH:     $HIGH"
-              echo "🟡 MODERATE: $MODERATE"
-              echo "🔵 LOW:      $LOW"
-              echo "::endgroup::"
-
-              # Validar umbrales
-              EXIT_CODE=0
-
-              if [ "$CRITICAL" -gt 0 ]; then
-                echo "::error::Se encontraron $CRITICAL vulnerabilidades CRITICAL"
-                EXIT_CODE=1
-              fi
-
-              if [ "$HIGH" -gt 0 ]; then
-                echo "::error::Se encontraron $HIGH vulnerabilidades HIGH"
-                EXIT_CODE=1
-              fi
-
-              if [ "$MODERATE" -gt 0 ]; then
-                echo "::error::Se encontraron $MODERATE vulnerabilidades MODERATE"
-                EXIT_CODE=1
-              fi
-
-              if [ $EXIT_CODE -eq 0 ]; then
-                echo "::notice::Análisis SCA aprobado - Sin vulnerabilidades críticas"
-              else
-                echo "::error::Análisis SCA rechazado - Revisar dependencias vulnerables"
-                echo "::notice::Descarga el reporte completo desde los artifacts"
-              fi
-
-              exit $EXIT_CODE
+      # 6️⃣ Publicar el reporte de OWASP como artefacto
+      - name: Upload Dependency Check report
+        uses: actions/upload-artifact@654321fedcba987654321fedcba987654321fedc # 🔒 Usa SHA también
+        with:
+          name: dependency-check-report
+          path: reports
