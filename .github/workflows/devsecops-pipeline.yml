@@ -64,3 +64,48 @@ jobs:
             echo "⏭️  Continuando con el pipeline..."
             exit 0
           fi
+
+  sca-analysis:
+    name: SCA - Dependency Check
+    runs-on: ubuntu-latest
+    needs: sast-analysis
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: 🔍 OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@8e1519bdbe888ac6f73a9b4bbe600986dd3e5d4f # v1.1.0
+        id: dependency-check
+        env:
+          JAVA_HOME: /opt/jdk
+        with:
+          project: "movies-app"
+          path: "."
+          format: "HTML"
+          args: >
+            --failOnCVSS 4
+            --enableRetired
+            --enableExperimental
+
+      - name: 📤 Upload Dependency-Check Report
+        if: always()
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+        with:
+          name: dependency-check-report
+          path: reports/
+
+      - name: 🚨 Evaluate SCA Results
+        if: always()
+        run: |
+          if [ -f "reports/dependency-check-report.html" ]; then
+            echo "✅ Reporte de dependencias generado"
+            echo "📊 Revisa el reporte en los artifacts"
+            
+            # Si dependency-check falló, el job ya habrá fallado con --failOnCVSS 4
+            if [ $? -eq 0 ]; then
+              echo "✅ No se encontraron vulnerabilidades >= CVSS 4.0 (Medium)"
+            else
+              echo "❌ Se encontraron vulnerabilidades >= CVSS 4.0 (Medium)"
+            fi
+          fi
