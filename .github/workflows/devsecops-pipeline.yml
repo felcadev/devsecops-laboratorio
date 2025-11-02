@@ -83,7 +83,7 @@ jobs:
           path: "."
           format: "HTML"
           args: >
-            --failOnCVSS 10
+            --failOnCVSS ${{ vars.CVSS_NUMBER }}
             --enableRetired
             --enableExperimental
 
@@ -98,8 +98,9 @@ jobs:
         run: |
           if [ -f "reports/dependency-check-report.html" ]; then
             echo "Reporte de dependencias generado"
-            echo " Pipeline fallará si hay vulnerabilidades >= CVSS 4.0 (Medium)"
-            # Dependency-Check ya hace fallar el job con --failOnCVSS 4
+            echo " Pipeline fallará si hay vulnerabilidades >= CVSS ${{ vars.CVSS_NUMBER }}"
+            echo " Puedes ver el reporte completo en la sección 'Artifacts' de esta página:"
+            echo "   ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           fi
 
   build-docker-image:
