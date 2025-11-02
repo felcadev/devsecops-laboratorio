@@ -154,7 +154,7 @@ jobs:
 
       # 5️⃣ SCA - Análisis de dependencias con OWASP Dependency-Check
       - name: SCA - OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@75ba02d3345d341b525164d781b0a88031d607e1
+        uses: dependency-check/action@53d267f89745d43899f8f26ef53982467d530869
         with:
           project: "Movies"
           path: "."
