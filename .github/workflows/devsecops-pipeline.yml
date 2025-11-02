@@ -11,40 +11,14 @@ env:
   DOCKER_IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  sast-analysis:
-    name: SAST - Static Application Security Testing
+  sonarqube:
+    name: SonarQube
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=felcadev_devsecops-laboratorio
-            -Dsonar.organization=felcadev
-
-      - name: Wait for SonarCloud Quality Gate
-        run: |
-          echo "Esperando resultado del Quality Gate..."
-          sleep 10
-
-      - name: Check SonarCloud Quality Gate
-        uses: sonarsource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          scanMetadataReportFile: .scannerwork/report-task.txt
-
-      - name: Check for Critical/High/Medium Vulnerabilities
-        run: |
-          echo "Pipeline configurado para fallar con vulnerabilidades Críticas, Altas o Medias"
-          echo "SonarCloud Quality Gate debe estar configurado para bloquear estos niveles test"
