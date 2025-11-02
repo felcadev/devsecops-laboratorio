@@ -11,59 +11,59 @@ env:
   DOCKER_IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  # sast-analysis:
-  #   name: SAST - Static Application Security Testing
-  #   runs-on: ubuntu-latest
+  sast-analysis:
+    name: SAST - Static Application Security Testing
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: 📥 Checkout repository
-  #       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-  #       with:
-  #         fetch-depth: 0 # Necesario para análisis completo de SonarCloud
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0 # Necesario para análisis completo de SonarCloud
 
-  #     - name: 🔍 SonarCloud Scan
-  #       uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2.3.0
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-  #       with:
-  #         args: >
-  #           -Dsonar.projectKey=felcadev_devsecops-laboratorio
-  #           -Dsonar.organization=felcadev
+      - name: 🔍 SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2.3.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=felcadev_devsecops-laboratorio
+            -Dsonar.organization=felcadev
 
-  #     - name: 📊 Wait for SonarCloud Processing
-  #       run: |
-  #         echo "⏳ Esperando a que SonarCloud procese los resultados..."
-  #         sleep 20
+      - name: 📊 Wait for SonarCloud Processing
+        run: |
+          echo "⏳ Esperando a que SonarCloud procese los resultados..."
+          sleep 20
 
-  #     - name: ✅ Check SonarCloud Quality Gate
-  #       id: sonar-quality-gate
-  #       uses: sonarsource/sonarqube-quality-gate-action@d304d050d930b02a896b0f85935344f023928496 # v1.1.0
-  #       timeout-minutes: 5
-  #       continue-on-error: true
-  #       env:
-  #         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-  #       with:
-  #         scanMetadataReportFile: .scannerwork/report-task.txt
+      - name: ✅ Check SonarCloud Quality Gate
+        id: sonar-quality-gate
+        uses: sonarsource/sonarqube-quality-gate-action@d304d050d930b02a896b0f85935344f023928496 # v1.1.0
+        timeout-minutes: 5
+        continue-on-error: true
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          scanMetadataReportFile: .scannerwork/report-task.txt
 
-  #     - name: 🚨 Evaluate Quality Gate Result
-  #       run: |
-  #         echo "📊 Quality Gate Status: ${{ steps.sonar-quality-gate.outcome }}"
+      - name: 🚨 Evaluate Quality Gate Result
+        run: |
+          echo "📊 Quality Gate Status: ${{ steps.sonar-quality-gate.outcome }}"
 
-  #         if [ "${{ steps.sonar-quality-gate.outcome }}" == "success" ]; then
-  #           echo "✅ Quality Gate PASSED - No vulnerabilidades críticas"
-  #           exit 0
-  #         elif [ "${{ steps.sonar-quality-gate.outcome }}" == "failure" ]; then
-  #           echo "❌ Quality Gate FAILED - Vulnerabilidades detectadas"
-  #           echo "⚠️  Se encontraron problemas de seguridad o calidad"
-  #           echo "🔍 Revisa los detalles en: https://sonarcloud.io/project/overview?id=felcadev_devsecops-laboratorio"
-  #           exit 1
-  #         else
-  #           echo "⚠️  Quality Gate check no completado (posible primer análisis)"
-  #           echo "📊 Revisa manualmente en SonarCloud: https://sonarcloud.io"
-  #           echo "⏭️  Continuando con el pipeline..."
-  #           exit 0
-  #         fi
+          if [ "${{ steps.sonar-quality-gate.outcome }}" == "success" ]; then
+            echo "✅ Quality Gate PASSED - No vulnerabilidades críticas"
+            exit 0
+          elif [ "${{ steps.sonar-quality-gate.outcome }}" == "failure" ]; then
+            echo "❌ Quality Gate FAILED - Vulnerabilidades detectadas"
+            echo "⚠️  Se encontraron problemas de seguridad o calidad"
+            echo "🔍 Revisa los detalles en: https://sonarcloud.io/project/overview?id=felcadev_devsecops-laboratorio"
+            exit 1
+          else
+            echo "⚠️  Quality Gate check no completado (posible primer análisis)"
+            echo "📊 Revisa manualmente en SonarCloud: https://sonarcloud.io"
+            echo "⏭️  Continuando con el pipeline..."
+            exit 0
+          fi
 
   #   sca-analysis:
   #     name: SCA - Dependency Check
@@ -116,7 +116,7 @@ jobs:
   build-docker-image:
     name: Build Docker Image
     runs-on: ubuntu-latest
-    # needs: sca-analysis
+    needs: sast-analysis
 
     steps:
       - name: 📥 Checkout repository
@@ -151,7 +151,7 @@ jobs:
 
     steps:
       - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: 📥 Download Docker Image
         uses: actions/download-artifact@v4
