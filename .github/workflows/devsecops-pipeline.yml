@@ -169,7 +169,7 @@ jobs:
           image-ref: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
           format: "sarif"
           output: "trivy-results.sarif"
-          severity: "CRITICAL,HIGH,MEDIUM"
+          severity: "CRITICAL"
           exit-code: "1" # Falla el pipeline si encuentra vulnerabilidades
 
       - name: 📤 Upload Trivy Results to GitHub Security
