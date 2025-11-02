@@ -1,23 +1,50 @@
-name: DevSecOps Pipeline
+name: DevSecOps CI Pipeline
 
 on:
   push:
     branches:
       - main
-      - feat/devsecops-init
+      - feat/**
+
+env:
+  DOCKER_IMAGE_NAME: movies-app
+  DOCKER_IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  devsecops:
+  sast-analysis:
+    name: SAST - Static Application Security Testing
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          fetch-depth: 0
 
-      - name: Install dependencies
-        run: npm install
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=felcadev_devsecops-laboratorio
+            -Dsonar.organization=felcadev
+
+      - name: Wait for SonarCloud Quality Gate
+        run: |
+          echo "Esperando resultado del Quality Gate..."
+          sleep 10
+
+      - name: Check SonarCloud Quality Gate
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          scanMetadataReportFile: .scannerwork/report-task.txt
+
+      - name: Check for Critical/High/Medium Vulnerabilities
+        run: |
+          echo "Pipeline configurado para fallar con vulnerabilidades Críticas, Altas o Medias"
+          echo "SonarCloud Quality Gate debe estar configurado para bloquear estos niveles test"
