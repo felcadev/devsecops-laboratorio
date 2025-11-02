@@ -153,18 +153,111 @@ jobs:
       #       -Dsonar.qualitygate.wait=true
 
       # 5️⃣ SCA - Análisis de dependencias con OWASP Dependency-Check
-      - name: SCA - OWASP Dependency Check
-        uses: dependency-check/action@53d267f89745d43899f8f26ef53982467d530869
-        with:
-          project: "Movies"
-          path: "."
-          format: "HTML"
-          out: "reports"
-        continue-on-error: false
+    sca-dependencycheck:
+      name: SCA
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v3
+          with:
+            fetch-depth: 0
 
-      # 6️⃣ Subir reporte de dependencias
-      - name: Upload dependency check report
-        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
-        with:
-          name: dependency-report
-          path: reports
+        - name: Setup Java (requerido para Dependency-Check)
+          uses: actions/setup-java@v3
+          with:
+            distribution: "temurin"
+            java-version: "17"
+
+        - name: Análisis OWASP Dependency-Check
+          uses: dependency-check/Dependency-Check_Action@main
+          env:
+            JAVA_HOME: /opt/jdk
+          with:
+            project: "${{ github.repository }}"
+            path: "."
+            format: "ALL"
+            args: >
+              --enableRetired
+            out: "reports"
+
+        - name: Carga de reportes de Dependency-Check
+          uses: actions/upload-artifact@v4
+          with:
+            name: dependency-check-report
+            path: reports/
+            retention-days: 30
+
+        - name: Análisis de reporte de Dependency-Check
+          run: |
+            echo "::group::Análisis de Vulnerabilidades en Dependencias (SCA)"
+
+            REPORT_JSON="reports/dependency-check-report.json"
+
+            if [ ! -f "$REPORT_JSON" ]; then
+              echo "::error::No se generó el reporte de Dependency-Check"
+              exit 1
+            fi
+
+            # Contar vulnerabilidades por severidad
+            CRITICAL=$(jq -r '
+              [.dependencies[]?.vulnerabilities[]? | 
+              select(.severity == "critical")] | length
+            ' "$REPORT_JSON")
+
+            HIGH=$(jq -r '
+              [.dependencies[]?.vulnerabilities[]? | 
+              select(.severity == "high")] | length
+            ' "$REPORT_JSON")
+
+            MODERATE=$(jq -r '
+              [.dependencies[]?.vulnerabilities[]? | 
+              select(.severity == "moderate")] | length
+            ' "$REPORT_JSON")
+
+            LOW=$(jq -r '
+              [.dependencies[]?.vulnerabilities[]? | 
+              select(.severity == "low")] | length
+            ' "$REPORT_JSON")
+
+            # Contar dependencias vulnerables
+            VULNERABLE_DEPS=$(jq -r '
+              [.dependencies[]? | 
+              select(.vulnerabilities != null and (.vulnerabilities | length) > 0)] | length
+            ' "$REPORT_JSON")
+
+            TOTAL_DEPS=$(jq -r '.dependencies | length' "$REPORT_JSON")
+
+            echo "Dependencias analizadas: $TOTAL_DEPS"
+            echo "Dependencias vulnerables: $VULNERABLE_DEPS"
+            echo ""
+            echo "🔴 CRITICAL: $CRITICAL"
+            echo "🟠 HIGH:     $HIGH"
+            echo "🟡 MODERATE: $MODERATE"
+            echo "🔵 LOW:      $LOW"
+            echo "::endgroup::"
+
+            # Validar umbrales
+            EXIT_CODE=0
+
+            if [ "$CRITICAL" -gt 0 ]; then
+              echo "::error::Se encontraron $CRITICAL vulnerabilidades CRITICAL"
+              EXIT_CODE=1
+            fi
+
+            if [ "$HIGH" -gt 0 ]; then
+              echo "::error::Se encontraron $HIGH vulnerabilidades HIGH"
+              EXIT_CODE=1
+            fi
+
+            if [ "$MODERATE" -gt 0 ]; then
+              echo "::error::Se encontraron $MODERATE vulnerabilidades MODERATE"
+              EXIT_CODE=1
+            fi
+
+            if [ $EXIT_CODE -eq 0 ]; then
+              echo "::notice::Análisis SCA aprobado - Sin vulnerabilidades críticas"
+            else
+              echo "::error::Análisis SCA rechazado - Revisar dependencias vulnerables"
+              echo "::notice::Descarga el reporte completo desde los artifacts"
+            fi
+
+            exit $EXIT_CODE
