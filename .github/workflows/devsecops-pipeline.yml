@@ -1,4 +1,116 @@
-name: DevSecOps CI Pipeline
+# name: DevSecOps CI Pipeline
+
+# on:
+#   push:
+#     branches:
+#       - main
+#       - feat/**
+
+# env:
+#   DOCKER_IMAGE_NAME: movies-app
+#   DOCKER_IMAGE_TAG: ${{ github.sha }}
+
+# jobs:
+#   sast-analysis:
+#     name: SAST - Static Application Security Testing
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: 📥 Checkout repository
+#         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+#         with:
+#           fetch-depth: 0 # Necesario para análisis completo de SonarCloud
+
+#       - name: 🔍 SonarCloud Scan
+#         uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2.3.0
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#         with:
+#           args: >
+#             -Dsonar.projectKey=felcadev_devsecops-laboratorio
+#             -Dsonar.organization=felcadev
+
+#       - name: 📊 Wait for SonarCloud Processing
+#         run: |
+#           echo "⏳ Esperando a que SonarCloud procese los resultados..."
+#           sleep 20
+
+#       - name: ✅ Check SonarCloud Quality Gate
+#         id: sonar-quality-gate
+#         uses: sonarsource/sonarqube-quality-gate-action@d304d050d930b02a896b0f85935344f023928496 # v1.1.0
+#         timeout-minutes: 5
+#         continue-on-error: true
+#         env:
+#           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#         with:
+#           scanMetadataReportFile: .scannerwork/report-task.txt
+
+#       - name: 🚨 Evaluate Quality Gate Result
+#         run: |
+#           echo "📊 Quality Gate Status: ${{ steps.sonar-quality-gate.outcome }}"
+
+#           if [ "${{ steps.sonar-quality-gate.outcome }}" == "success" ]; then
+#             echo "✅ Quality Gate PASSED - No vulnerabilidades críticas"
+#             exit 0
+#           elif [ "${{ steps.sonar-quality-gate.outcome }}" == "failure" ]; then
+#             echo "❌ Quality Gate FAILED - Vulnerabilidades detectadas"
+#             echo "⚠️  Se encontraron problemas de seguridad o calidad"
+#             echo "🔍 Revisa los detalles en: https://sonarcloud.io/project/overview?id=felcadev_devsecops-laboratorio"
+#             exit 1
+#           else
+#             echo "⚠️  Quality Gate check no completado (posible primer análisis)"
+#             echo "📊 Revisa manualmente en SonarCloud: https://sonarcloud.io"
+#             echo "⏭️  Continuando con el pipeline..."
+#             exit 0
+#           fi
+
+#   sca-analysis:
+#     name: SCA - Dependency Check
+#     runs-on: ubuntu-latest
+#     needs: sast-analysis
+
+#     steps:
+#       - name: 📥 Checkout repository
+#         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+#       - name: 🔍 OWASP Dependency-Check
+#         uses: dependency-check/Dependency-Check_Action@8e1519bdbe888ac6f73a9b4bbe600986dd3e5d4f # v1.1.0
+#         id: dependency-check
+#         env:
+#           JAVA_HOME: /opt/jdk
+#         with:
+#           project: "movies-app"
+#           path: "."
+#           format: "HTML"
+#           args: >
+#             --failOnCVSS 4
+#             --enableRetired
+#             --enableExperimental
+
+#       - name: 📤 Upload Dependency-Check Report
+#         if: always()
+#         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+#         with:
+#           name: dependency-check-report
+#           path: reports/
+
+#       - name: 🚨 Evaluate SCA Results
+#         if: always()
+#         run: |
+#           if [ -f "reports/dependency-check-report.html" ]; then
+#             echo "✅ Reporte de dependencias generado"
+#             echo "📊 Revisa el reporte en los artifacts"
+
+#             # Si dependency-check falló, el job ya habrá fallado con --failOnCVSS 4
+#             if [ $? -eq 0 ]; then
+#               echo "✅ No se encontraron vulnerabilidades >= CVSS 4.0 (Medium)"
+#             else
+#               echo "❌ Se encontraron vulnerabilidades >= CVSS 4.0 (Medium)"
+#             fi
+#           fi
+
+name: DevSecOps Pipeline
 
 on:
   push:
@@ -6,106 +118,33 @@ on:
       - main
       - feat/**
 
-env:
-  DOCKER_IMAGE_NAME: movies-app
-  DOCKER_IMAGE_TAG: ${{ github.sha }}
-
 jobs:
-  sast-analysis:
-    name: SAST - Static Application Security Testing
+  devsecops:
     runs-on: ubuntu-latest
+    name: CI Security Pipeline
 
     steps:
-      - name: 📥 Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        with:
-          fetch-depth: 0 # Necesario para análisis completo de SonarCloud
 
-      - name: 🔍 SonarCloud Scan
+      # 2️⃣ Configuración del entorno Node.js (ajusta versión si tu proyecto usa otra)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      # 3️⃣ Instalación de dependencias
+      - name: Install dependencies
+        run: npm install
+
+      # 4️⃣ SAST - Análisis estático con SonarCloud
+      - name: SAST - SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2.3.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: >
             -Dsonar.projectKey=felcadev_devsecops-laboratorio
             -Dsonar.organization=felcadev
-
-      - name: 📊 Wait for SonarCloud Processing
-        run: |
-          echo "⏳ Esperando a que SonarCloud procese los resultados..."
-          sleep 20
-
-      - name: ✅ Check SonarCloud Quality Gate
-        id: sonar-quality-gate
-        uses: sonarsource/sonarqube-quality-gate-action@d304d050d930b02a896b0f85935344f023928496 # v1.1.0
-        timeout-minutes: 5
-        continue-on-error: true
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          scanMetadataReportFile: .scannerwork/report-task.txt
-
-      - name: 🚨 Evaluate Quality Gate Result
-        run: |
-          echo "📊 Quality Gate Status: ${{ steps.sonar-quality-gate.outcome }}"
-
-          if [ "${{ steps.sonar-quality-gate.outcome }}" == "success" ]; then
-            echo "✅ Quality Gate PASSED - No vulnerabilidades críticas"
-            exit 0
-          elif [ "${{ steps.sonar-quality-gate.outcome }}" == "failure" ]; then
-            echo "❌ Quality Gate FAILED - Vulnerabilidades detectadas"
-            echo "⚠️  Se encontraron problemas de seguridad o calidad"
-            echo "🔍 Revisa los detalles en: https://sonarcloud.io/project/overview?id=felcadev_devsecops-laboratorio"
-            exit 1
-          else
-            echo "⚠️  Quality Gate check no completado (posible primer análisis)"
-            echo "📊 Revisa manualmente en SonarCloud: https://sonarcloud.io"
-            echo "⏭️  Continuando con el pipeline..."
-            exit 0
-          fi
-
-  sca-analysis:
-    name: SCA - Dependency Check
-    runs-on: ubuntu-latest
-    needs: sast-analysis
-
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-
-      - name: 🔍 OWASP Dependency-Check
-        uses: dependency-check/Dependency-Check_Action@8e1519bdbe888ac6f73a9b4bbe600986dd3e5d4f # v1.1.0
-        id: dependency-check
-        env:
-          JAVA_HOME: /opt/jdk
-        with:
-          project: "movies-app"
-          path: "."
-          format: "HTML"
-          args: >
-            --failOnCVSS 4
-            --enableRetired
-            --enableExperimental
-
-      - name: 📤 Upload Dependency-Check Report
-        if: always()
-        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
-        with:
-          name: dependency-check-report
-          path: reports/
-
-      - name: 🚨 Evaluate SCA Results
-        if: always()
-        run: |
-          if [ -f "reports/dependency-check-report.html" ]; then
-            echo "✅ Reporte de dependencias generado"
-            echo "📊 Revisa el reporte en los artifacts"
-            
-            # Si dependency-check falló, el job ya habrá fallado con --failOnCVSS 4
-            if [ $? -eq 0 ]; then
-              echo "✅ No se encontraron vulnerabilidades >= CVSS 4.0 (Medium)"
-            else
-              echo "❌ Se encontraron vulnerabilidades >= CVSS 4.0 (Medium)"
-            fi
-          fi
+            -Dsonar.qualitygate.wait=true
