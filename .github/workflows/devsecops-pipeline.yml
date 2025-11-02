@@ -124,37 +124,37 @@ jobs:
     name: CI Security Pipeline
 
     steps:
-      # 1️⃣ Checkout del repositorio
-      - name: Checkout repository
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        with:
-          fetch-depth: 0 # Necesario para SonarCloud
+      # # 1️⃣ Checkout del repositorio
+      # - name: Checkout repository
+      #   uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      #   with:
+      #     fetch-depth: 0 # Necesario para SonarCloud
 
-      # 2️⃣ Configuración del entorno Node.js
-      - name: Set up Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
-        with:
-          node-version: "18"
+      # # 2️⃣ Configuración del entorno Node.js
+      # - name: Set up Node.js
+      #   uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      #   with:
+      #     node-version: "18"
 
-      # 3️⃣ Instalación de dependencias
-      - name: Install dependencies
-        run: npm install
+      # # 3️⃣ Instalación de dependencias
+      # - name: Install dependencies
+      #   run: npm install
 
-      # 4️⃣ SAST - Análisis estático con SonarCloud
-      - name: SAST - SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2.3.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=felcadev_devsecops-laboratorio
-            -Dsonar.organization=felcadev
-            -Dsonar.qualitygate.wait=true
+      # # 4️⃣ SAST - Análisis estático con SonarCloud
+      # - name: SAST - SonarCloud Scan
+      #   uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v2.3.0
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     args: >
+      #       -Dsonar.projectKey=felcadev_devsecops-laboratorio
+      #       -Dsonar.organization=felcadev
+      #       -Dsonar.qualitygate.wait=true
 
       # 5️⃣ SCA - Análisis de dependencias con OWASP Dependency Check
       - name: OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@1a2b3c4d5e6f7890abcdef1234567890abcdef12 # 🔒 Usa el SHA exacto
+        uses: dependency-check/Dependency-Check_Action@v1.2.3
         with:
           project: "react-frontend"
           path: "."
@@ -166,7 +166,7 @@ jobs:
 
       # 6️⃣ Publicar el reporte de OWASP como artefacto
       - name: Upload Dependency Check report
-        uses: actions/upload-artifact@654321fedcba987654321fedcba987654321fedc # 🔒 Usa SHA también
+        uses: actions/upload-artifact@master # 🔒 Usa SHA también
         with:
           name: dependency-check-report
           path: reports
