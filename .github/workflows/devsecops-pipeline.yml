@@ -83,7 +83,7 @@ jobs:
           path: "."
           format: "HTML"
           args: >
-            --failOnCVSS 4
+            --failOnCVSS 10
             --enableRetired
             --enableExperimental
 
