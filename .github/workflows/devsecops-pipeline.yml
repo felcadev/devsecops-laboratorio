@@ -167,41 +167,72 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
-          format: "sarif"
-          output: "trivy-results.sarif"
-          severity: "CRITICAL"
-          ignore-unfixed: true
-          exit-code: "1" # Falla el pipeline si encuentra vulnerabilidades
-
-      - name: 📤 Upload Trivy Results to GitHub Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: "trivy-results.sarif"
-
-      - name: 🔍 Run Trivy Scan (Table Format)
-        if: always()
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
           format: "table"
-          severity: "CRITICAL,HIGH,MEDIUM"
+          severity: "CRITICAL"
+          vuln-type: "os.library"
+          exit-code: "1"
 
-      - name: 📊 Generate Trivy JSON Report
-        if: always()
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
-          format: "json"
-          output: "trivy-report.json"
-          severity: "CRITICAL,HIGH,MEDIUM"
+  # # ========================================
+  # # ETAPA 5: Image Security Scan con Trivy
+  # # ========================================
+  # image-security-scan:
+  #   name: Image Security - Trivy Scan
+  #   runs-on: ubuntu-latest
+  #   needs: build-docker-image
 
-      - name: 📤 Upload Trivy JSON Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-security-report
-          path: trivy-report.json
+  #   steps:
+  #     - name: 📥 Checkout repository
+  #       uses: actions/checkout@v4
+
+  #     - name: 📥 Download Docker Image
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: docker-image
+  #         path: /tmp
+
+  #     - name: 🐳 Load Docker Image
+  #       run: |
+  #         docker load -i /tmp/docker-image.tar
+
+  #     - name: 🔍 Run Trivy Vulnerability Scanner
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         image-ref: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
+  #         format: "sarif"
+  #         output: "trivy-results.sarif"
+  #         severity: "CRITICAL"
+  #         ignore-unfixed: true
+  #         exit-code: "1" # Falla el pipeline si encuentra vulnerabilidades
+
+  #     - name: 📤 Upload Trivy Results to GitHub Security
+  #       if: always()
+  #       uses: github/codeql-action/upload-sarif@v3
+  #       with:
+  #         sarif_file: "trivy-results.sarif"
+
+  #     - name: 🔍 Run Trivy Scan (Table Format)
+  #       if: always()
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         image-ref: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
+  #         format: "table"
+  #         severity: "CRITICAL,HIGH,MEDIUM"
+
+  #     - name: 📊 Generate Trivy JSON Report
+  #       if: always()
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         image-ref: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
+  #         format: "json"
+  #         output: "trivy-report.json"
+  #         severity: "CRITICAL,HIGH,MEDIUM"
+
+  #     - name: 📤 Upload Trivy JSON Report
+  #       if: always()
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: trivy-security-report
+  #         path: trivy-report.json
 # name: DevSecOps Pipeline
 
 # on:
