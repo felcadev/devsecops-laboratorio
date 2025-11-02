@@ -124,12 +124,15 @@ jobs:
     name: CI Security Pipeline
 
     steps:
+      # 1️⃣ Checkout del repositorio
       - name: Checkout repository
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0 # Necesario para SonarCloud
 
-      # 2️⃣ Configuración del entorno Node.js (ajusta versión si tu proyecto usa otra)
+      # 2️⃣ Configuración del entorno Node.js
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
           node-version: "18"
 
@@ -151,7 +154,7 @@ jobs:
 
       # 5️⃣ SCA - Análisis de dependencias con OWASP Dependency-Check
       - name: SCA - OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@main
+        uses: dependency-check/Dependency-Check_Action@1.1.0
         with:
           project: "Movies"
           path: "."
@@ -159,8 +162,9 @@ jobs:
           out: "reports"
         continue-on-error: false
 
+      # 6️⃣ Subir reporte de dependencias
       - name: Upload dependency check report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@master
         with:
           name: dependency-report
           path: reports
