@@ -169,7 +169,6 @@ jobs:
           image-ref: ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_IMAGE_TAG }}
           format: "table"
           severity: "CRITICAL"
-          vuln-type: "os.library"
           exit-code: "1"
 
   # # ========================================
